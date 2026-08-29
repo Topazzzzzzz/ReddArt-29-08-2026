@@ -49,7 +49,9 @@ $bannerAtual = !empty($usuario['userBanner']) ? $usuario['userBanner'] : 'upload
     <nav id="sidebar">
         <div id="sidebar_content">
             <div id="user">
-                <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" alt="Avatar" id="user_avatar">
+                <a href="perfil.php">
+                    <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" alt="Avatar" id="user_avatar">
+                </a>
 
                 <p id="user_infos">
                     <span class="item_descricao">
@@ -135,7 +137,7 @@ $bannerAtual = !empty($usuario['userBanner']) ? $usuario['userBanner'] : 'upload
                 <span>Notificações</span>
             </button>
 
-            <a href="cada.php" class="config_option logout">
+            <a href="login.php" class="config_option logout">
                 <i class="fa-solid fa-right-from-bracket"></i>
                 <span>Logout</span>
             </a>
