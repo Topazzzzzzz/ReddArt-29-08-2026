@@ -1,5 +1,14 @@
 <?php
+session_start();
 include "setup/conexao.php";
+
+// Sem isso, não dá pra saber de quem é a publicação (nem sincronizar no perfil)
+if (!isset($_SESSION['idUsuario'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$idUsuarioLogado = $_SESSION['idUsuario'];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $titulo = $_POST['titulo'] ?? '';
@@ -23,9 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Insere na tabela vinculando o idGenero selecionado
             $stmt = $conn->prepare("INSERT INTO tblPublicacoes (idUsuario, pubHora, pubLink, pubLegenda, idGenero) VALUES (?, NOW(), ?, ?, ?)");
 
-            $idUsuarioTemp = 1; // Substitua pelo ID da sessão do usuário logado se houver
-
-            $stmt->bind_param("issi", $idUsuarioTemp, $caminhoFinal, $titulo, $idGenero);
+            $stmt->bind_param("issi", $idUsuarioLogado, $caminhoFinal, $titulo, $idGenero);
 
             if ($stmt->execute()) {
                 $stmt->close();

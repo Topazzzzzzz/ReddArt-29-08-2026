@@ -59,20 +59,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <div class="coluna">
         <div class="carrossel">
             <div class="track track-up">
-                <img src="fotosLogin/Angles.png" alt="Art">
-                <img src="fotosLogin/Cover.png" alt="Art">
-                <img src="fotosLogin/Imprisoned.png" alt="Art">
-                <img src="fotosLogin/Kao.png" alt="Art">
-                <img src="fotosLogin/KiLLKiSS.png" alt="Art">
-                <img src="fotosLogin/Sophie.png" alt="Art">
+                <img src="fotosLogin/FireBird.png" alt="Art">
+                <img src="fotosLogin/Legendary.png" alt="Art">
+                <img src="fotosLogin/FloralHeaven.png" alt="Art">
+                <img src="fotosLogin/FurImmer.webp" alt="Art">
+                <img src="fotosLogin/OperaOfTheWasteland.png" alt="Art">
+                <img src="fotosLogin/LehreRose.png" alt="Art">
             </div>
             <div class="track track-down">
-                <img src="fotosLogin/Fear Nothing.png" alt="Art">
-                <img src="fotosLogin/FireBird.png" alt="Art">
-                <img src="fotosLogin/Floral.png" alt="Art">
-                <img src="fotosLogin/Requiem.png" alt="Art">
-                <img src="fotosLogin/BlackShout.png" alt="Art">
-                <img src="fotosLogin/Requiem.png" alt="Art">
+                <img src="fotosLogin/Era.jpg" alt="Art">
+                <img src="fotosLogin/ExposeBurnout.png" alt="Art">
+                <img src="fotosLogin/FightAttitude.png" alt="Art">
+                <img src="fotosLogin/HowlyAmbition.jpg" alt="Art">
+                <img src="fotosLogin/WhatAnExplosion.jpg" alt="Art">
+                <img src="fotosLogin/Savage.jpg" alt="Art">
             </div>
         </div>
     </div>
@@ -103,20 +103,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <div class="coluna">
         <div class="carrossel">
             <div class="track track-down">
-                <img src="fotosLogin/Angles.png" alt="Art">
-                <img src="fotosLogin/Cover.png" alt="Art">
-                <img src="fotosLogin/Imprisoned.png" alt="Art">
-                <img src="fotosLogin/Kao.png" alt="Art">
+                <img src="fotosLogin/STheWay.png" alt="Art">
                 <img src="fotosLogin/KiLLKiSS.png" alt="Art">
-                <img src="fotosLogin/Sophie.png" alt="Art">
+                <img src="fotosLogin/KamiSamaBaka.png" alt="Art">
+                <img src="fotosLogin/ImPrisonedXII.png" alt="Art">
+                <img src="fotosLogin/CrucifixX.png" alt="Art">
+                <img src="fotosLogin/ChoirSChoir.png" alt="Art">
             </div>
             <div class="track track-up">
-                <img src="fotosLogin/Fear Nothing.png" alt="Art">
-                <img src="fotosLogin/FireBird.png" alt="Art">
-                <img src="fotosLogin/Floral.png" alt="Art">
-                <img src="fotosLogin/Requiem.png" alt="Art">
-                <img src="fotosLogin/BlackShout.png" alt="Art">
-                <img src="fotosLogin/Requiem.png" alt="Art">
+                <img src="fotosLogin/FE1.png" alt="Art">
+                <img src="fotosLogin/FE2.png" alt="Art">
+                <img src="fotosLogin/FE3.png" alt="Art">
+                <img src="fotosLogin/FE4.jpg" alt="Art">
+                <img src="fotosLogin/FE5.jpg" alt="Art">
+                <img src="fotosLogin/TP.jpg" alt="Art">
             </div>
         </div>
     </div>

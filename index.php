@@ -94,7 +94,6 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
         <div class="section-container">
             <div class="section-header">
                 <h3><?php echo !empty($termoBusca) ? "Resultados para: '" . htmlspecialchars($termoBusca) . "'" : "Recentes"; ?></h3>
-                <a href="#" class="ver-todas">Ver todas <i class="fa-solid fa-chevron-right"></i></a>
             </div>
 
             <div class="cards-row cards-recentes">
@@ -104,7 +103,9 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                     $termoInicio = $termoBusca . "%";
 
                     if ($generoFiltro) {
-                        $sqlEmAlta = "SELECT * FROM tblPublicacoes 
+                        $sqlEmAlta = "SELECT tblPublicacoes.*, tblUsuario.userNome AS autorNome
+                                      FROM tblPublicacoes
+                                      LEFT JOIN tblUsuario ON tblUsuario.idUsuario = tblPublicacoes.idUsuario
                                       WHERE pubLegenda LIKE ? AND idGenero = ?
                                       ORDER BY 
                                           CASE 
@@ -116,7 +117,9 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                         $stmt = $conn->prepare($sqlEmAlta);
                         $stmt->bind_param("sis", $paramBusca, $generoFiltro, $termoInicio);
                     } else {
-                        $sqlEmAlta = "SELECT * FROM tblPublicacoes 
+                        $sqlEmAlta = "SELECT tblPublicacoes.*, tblUsuario.userNome AS autorNome
+                                      FROM tblPublicacoes
+                                      LEFT JOIN tblUsuario ON tblUsuario.idUsuario = tblPublicacoes.idUsuario
                                       WHERE pubLegenda LIKE ? 
                                       ORDER BY 
                                           CASE 
@@ -133,13 +136,19 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                     $resultadoEmAlta = $stmt->get_result();
                 } else {
                     if ($generoFiltro) {
-                        $sqlEmAlta = "SELECT * FROM tblPublicacoes WHERE idGenero = ? ORDER BY idPublicacao DESC LIMIT 5";
+                        $sqlEmAlta = "SELECT tblPublicacoes.*, tblUsuario.userNome AS autorNome
+                                      FROM tblPublicacoes
+                                      LEFT JOIN tblUsuario ON tblUsuario.idUsuario = tblPublicacoes.idUsuario
+                                      WHERE idGenero = ? ORDER BY idPublicacao DESC LIMIT 5";
                         $stmt = $conn->prepare($sqlEmAlta);
                         $stmt->bind_param("i", $generoFiltro);
                         $stmt->execute();
                         $resultadoEmAlta = $stmt->get_result();
                     } else {
-                        $sqlEmAlta = "SELECT * FROM tblPublicacoes ORDER BY idPublicacao DESC LIMIT 5";
+                        $sqlEmAlta = "SELECT tblPublicacoes.*, tblUsuario.userNome AS autorNome
+                                      FROM tblPublicacoes
+                                      LEFT JOIN tblUsuario ON tblUsuario.idUsuario = tblPublicacoes.idUsuario
+                                      ORDER BY idPublicacao DESC LIMIT 5";
                         $resultadoEmAlta = mysqli_query($conn, $sqlEmAlta);
                     }
                 }
@@ -149,7 +158,7 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                         $link = htmlspecialchars($row['pubLink'] ?? 'img/placeholder.jpg', ENT_QUOTES);
                         $legenda = htmlspecialchars($row['pubLegenda'] ?? 'Arte');
                         $tituloJs = htmlspecialchars(addslashes($row['pubLegenda'] ?? 'Arte'), ENT_QUOTES);
-                        $autorJs = htmlspecialchars(addslashes($nomeExibicao), ENT_QUOTES);
+                        $autorJs = htmlspecialchars(addslashes($row['autorNome'] ?? 'Usuário'), ENT_QUOTES);
                         $curtidasPub = intval($row['pubCurtida'] ?? 0);
                         $dataPub = !empty($row['pubHora']) ? date('d/m/Y H:i', strtotime($row['pubHora'])) : '';
                 ?>
@@ -182,13 +191,19 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                 <div class="cards-row">
                     <?php
                     if ($generoFiltro) {
-                        $sqlGaleria = "SELECT * FROM tblPublicacoes WHERE idGenero = ? ORDER BY idPublicacao DESC LIMIT 100 OFFSET 5";
+                        $sqlGaleria = "SELECT tblPublicacoes.*, tblUsuario.userNome AS autorNome
+                                       FROM tblPublicacoes
+                                       LEFT JOIN tblUsuario ON tblUsuario.idUsuario = tblPublicacoes.idUsuario
+                                       WHERE idGenero = ? ORDER BY idPublicacao DESC LIMIT 100 OFFSET 5";
                         $stmtGaleria = $conn->prepare($sqlGaleria);
                         $stmtGaleria->bind_param("i", $generoFiltro);
                         $stmtGaleria->execute();
                         $resultadoGeral = $stmtGaleria->get_result();
                     } else {
-                        $sqlGaleria = "SELECT * FROM tblPublicacoes ORDER BY idPublicacao DESC LIMIT 100 OFFSET 5";
+                        $sqlGaleria = "SELECT tblPublicacoes.*, tblUsuario.userNome AS autorNome
+                                       FROM tblPublicacoes
+                                       LEFT JOIN tblUsuario ON tblUsuario.idUsuario = tblPublicacoes.idUsuario
+                                       ORDER BY idPublicacao DESC LIMIT 100 OFFSET 5";
                         $resultadoGeral = mysqli_query($conn, $sqlGaleria);
                     }
 
@@ -197,7 +212,7 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                             $linkGaleria = htmlspecialchars($row['pubLink'], ENT_QUOTES);
                             $legendaGaleria = htmlspecialchars($row['pubLegenda']);
                             $tituloGaleriaJs = htmlspecialchars(addslashes($row['pubLegenda']), ENT_QUOTES);
-                            $autorGaleriaJs = htmlspecialchars(addslashes($nomeExibicao), ENT_QUOTES);
+                            $autorGaleriaJs = htmlspecialchars(addslashes($row['autorNome'] ?? 'Usuário'), ENT_QUOTES);
                             $curtidasGaleria = intval($row['pubCurtida'] ?? 0);
                             $dataGaleria = !empty($row['pubHora']) ? date('d/m/Y H:i', strtotime($row['pubHora'])) : '';
                     ?>
@@ -261,4 +276,4 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
 
     <script src="public/script.js?v=10"></script>
 </body>
-</html> 
+</html>

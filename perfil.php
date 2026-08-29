@@ -19,6 +19,24 @@ $nomeExibicao = htmlspecialchars($usuario['userNome'] ?? '');
 $descricao    = htmlspecialchars($usuario['userDescricao'] ?? '');
 $fotoPerfil   = !empty($usuario['userFoto'])   ? htmlspecialchars($usuario['userFoto'])   : 'img/default-avatar.png';
 $bannerPerfil = !empty($usuario['userBanner']) ? htmlspecialchars($usuario['userBanner']) : 'img/default-banner.jpg';
+
+// Busca as 4 publicações mais recentes FEITAS PELO USUÁRIO LOGADO
+// (tblPublicacoes é preenchida em processar_upload.php).
+// O array $publicacoes resultante é usado no layout desktop, no layout
+// 1025px–1440px e no layout mobile, para não montar a mesma query
+// nem duplicar a mesma lista três vezes no HTML.
+$publicacoes = [];
+$sqlPublicacoes = "SELECT * FROM tblPublicacoes WHERE idUsuario = $idUsuario ORDER BY pubHora DESC LIMIT 4";
+$resPublicacoes = mysqli_query($conn, $sqlPublicacoes);
+
+if ($resPublicacoes) {
+    while ($linha = mysqli_fetch_assoc($resPublicacoes)) {
+        $publicacoes[] = [
+            'img'    => $linha['pubLink'],
+            'titulo' => $linha['pubLegenda'],
+        ];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="PT-BR">
@@ -65,16 +83,17 @@ $bannerPerfil = !empty($usuario['userBanner']) ? htmlspecialchars($usuario['user
 
     <!-- Informações do usuário e botão de edição -->
     <div class="cover">
-        <div class="Nome">
-            <h1><?php echo $nomeExibicao; ?></h1>
+        <div class="box">
+            <div class="nome">
+                <h1> <?php echo $nomeExibicao; ?> </h1>
+            </div>
+            <div class="info">
+                <span> <b>📍Brasil </b></span>
+                <span> <b> — </b> </span>
+                <span> <b> Entrou em 2026 </b> </span>
+            </div>
         </div>
-        <div class="info">
-            <span> 📍Brasil </span>
-            <span> Entrou em 2026 </span>
-        </div>
-        <a href="editarPerfil.php">
-            <div class="Editar">Editar Perfil</div>
-        </a>
+        <a href="editarPerfil.php"> Editar Perfil </a>
     </div>
 
     <!-- COVER MOBILE (NOME) -->
@@ -110,30 +129,21 @@ $bannerPerfil = !empty($usuario['userBanner']) ? htmlspecialchars($usuario['user
             <div class="titulo">
                 <label for=""> PUBLICAÇÕES RECENTES </label>
             </div>
-            <div class="publicacoes">
-                <a href="">
-                    <img src="img/FE1.jpg" alt="">
-                    <div class="overlay"><span> Foreground Eclipse </span></div>
-                </a>
-            </div>
-            <div class="publicacoes">
-                <a href="">
-                    <img src="img/TW2.jpg" alt="">
-                    <div class="overlay"><span> Takamachi Walk </span></div>
-                </a>
-            </div>
-            <div class="publicacoes">
-                <a href="">
-                    <img src="img/UC1.jpg" alt="">
-                    <div class="overlay"><span> Undead Corporation </span></div>
-                </a>
-            </div>
-            <div class="publicacoes">
-                <a href="">
-                    <img src="img/TP1.jpg" alt="">
-                    <div class="overlay"><span> Touhou Project </span></div>
-                </a>
-            </div>
+            <?php if (!empty($publicacoes)): ?>
+                <?php foreach ($publicacoes as $pub): ?>
+                    <div class="publicacoes">
+                        <a href="index.php">
+                            <img src="<?php echo htmlspecialchars($pub['img']); ?>" alt="<?php echo htmlspecialchars($pub['titulo']); ?>">
+                            <div class="overlay"><span><?php echo htmlspecialchars($pub['titulo']); ?></span></div>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="sem-publicacoes">
+                    <p>Você ainda não publicou nenhuma arte.</p>
+                    <a href="adicionar.php">Publicar a primeira arte</a>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="descricao">
@@ -151,26 +161,20 @@ $bannerPerfil = !empty($usuario['userBanner']) ? htmlspecialchars($usuario['user
         <div class="titulo-mobile">
             <h1> PUBLICAÇÕES RECENTES </h1>
         </div>
-        <a href="">
-            <div class="publicacao-mobile">
-                <img src="img/FE1.jpg" alt="">
+        <?php if (!empty($publicacoes)): ?>
+            <?php foreach ($publicacoes as $pub): ?>
+                <a href="">
+                    <div class="publicacao-mobile">
+                        <img src="<?php echo htmlspecialchars($pub['img']); ?>" alt="<?php echo htmlspecialchars($pub['titulo']); ?>">
+                    </div>
+                </a>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="sem-publicacoes">
+                <p>Você ainda não publicou nenhuma arte.</p>
+                <a href="adicionar.php">Publicar a primeira arte</a>
             </div>
-        </a>
-        <a href="">
-            <div class="publicacao-mobile">
-                <img src="img/TW1.jpg" alt="">
-            </div>
-        </a>
-        <a href="">
-            <div class="publicacao-mobile">
-                <img src="img/UC1.jpg" alt="">
-            </div>
-        </a>
-        <a href="">
-            <div class="publicacao-mobile">
-                <img src="img/TP1.jpg" alt="">
-            </div>
-        </a>
+        <?php endif; ?>
     </div>
 
     <!-- DESCRIÇÃO MOBILE -->
@@ -180,6 +184,56 @@ $bannerPerfil = !empty($usuario['userBanner']) ? htmlspecialchars($usuario['user
         </div>
         <div class="texto-mobile">
             <textarea readonly><?php echo $descricao; ?></textarea>
+        </div>
+    </div>
+
+
+    <div class="trace">
+        <div class="photo">
+            <img src="<?php echo $fotoPerfil; ?>" alt="Foto do Perfil">
+        </div>
+        <div class="linka">
+            <a href="perfil.php"> <b> PERFIL </b> </a>
+            <a href="Galeria.php"> <b> GALERIA </b> </a>
+            <a href="#"> <b> COLEÇÕES </b> </a>
+            <a href="#"> <b> REDES SOCIAIS </b> </a>
+        </div>
+    </div>
+
+    <!-- NOME/INFO/BOTÃO (versão 1025px-1440px) -->
+    <div class="kaigaku">
+        <div class="namae">
+            <h1> <?php echo $nomeExibicao; ?> </h1>
+        </div>
+        <div class="information">
+            <span> 📍Brasil </span>
+            <span> Entrou em 2026 </span>
+        </div>
+
+        <a href="editarPerfil.php"> <b> Editar Perfil </b> </a>
+    </div>
+
+    <!-- PUBLICAÇÕES (versão 1025px-1440px) -->
+    <div class="publicacaozinha">
+        <div class="Titulo">
+            <h1> PUBLICAÇÕES RECENTES </h1>
+        </div>
+        <div class="post">
+            <?php if (!empty($publicacoes)): ?>
+                <?php foreach ($publicacoes as $pub): ?>
+                    <div class="post-item">
+                        <a href="">
+                            <img src="<?php echo htmlspecialchars($pub['img']); ?>" alt="<?php echo htmlspecialchars($pub['titulo']); ?>">
+                            <div class="post-overlay"><span><?php echo htmlspecialchars($pub['titulo']); ?></span></div>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="sem-publicacoes">
+                    <p>Você ainda não publicou nenhuma arte.</p>
+                    <a href="adicionar.php">Publicar a primeira arte</a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -213,4 +267,5 @@ $bannerPerfil = !empty($usuario['userBanner']) ? htmlspecialchars($usuario['user
     </footer>
 
 </body>
+
 </html>

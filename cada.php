@@ -53,13 +53,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
+    // Upload de Banner de Perfil
+    $caminhoBanner = "img/default-banner.jpg";
+
+    if (empty($erro) && isset($_FILES['userBanner']) && $_FILES['userBanner']['error'] === UPLOAD_ERR_OK) {
+        $extensaoBanner = strtolower(pathinfo($_FILES['userBanner']['name'], PATHINFO_EXTENSION));
+        $extensoesPermitidas = ['jpg', 'jpeg', 'png', 'webp'];
+
+        if (in_array($extensaoBanner, $extensoesPermitidas)) {
+            $novoNomeBanner = md5(uniqid(time())) . "." . $extensaoBanner;
+            $diretorioDestino = "uploads/perfil/";
+
+            if (!is_dir($diretorioDestino)) {
+                mkdir($diretorioDestino, 0777, true);
+            }
+
+            $caminhoBanner = $diretorioDestino . $novoNomeBanner;
+            move_uploaded_file($_FILES['userBanner']['tmp_name'], $caminhoBanner);
+        } else {
+            $erro = "Formato de imagem inválido! Use JPG, PNG ou WEBP.";
+        }
+    }
+
     if (empty($erro)) {
         if (!empty($nome) && !empty($nick) && !empty($email) && !empty($senha)) {
             $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
-            $sql = "INSERT INTO tblUsuario (userNome, userNick, userEmail, userSenha, userDescricao, userFoto, idCargo) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO tblUsuario (userNome, userNick, userEmail, userSenha, userDescricao, userFoto, userBanner, idCargo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("ssssssi", $nome, $nick, $email, $senhaHash, $descricao, $caminhoFoto, $idCargoPadrao);
+            $stmt->bind_param("sssssssi", $nome, $nick, $email, $senhaHash, $descricao, $caminhoFoto, $caminhoBanner, $idCargoPadrao);
 
             if ($stmt->execute()) {
                 $novoIdUsuario = $stmt->insert_id;
@@ -70,7 +92,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 $conn->close();
 
-                header("Location: index.php");
+                header("Location: login.php");
                 exit();
             } else {
                 if ($conn->errno === 1062) {
@@ -94,199 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro - ReddArt</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #000000, #0c0c11, #111113);
-            color: #ffffff;
-            min-height: 100vh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            overflow-x: hidden;
-        }
-
-        .site-header {
-            width: 100%;
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .site-title {
-            font-size: 36px;
-            font-weight: 800;
-            letter-spacing: 3px;
-            background: linear-gradient(135deg, #4f46e5, #000146);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-transform: uppercase;
-        }
-
-        .cadastro-container {
-            background-color: #121218;
-            border: 1px solid #1f1f2e;
-            padding: 32px;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 480px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .form-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 12px;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        label {
-            color: #8a8a9e;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="password"],
-        textarea {
-            width: 100%;
-            padding: 12px 14px;
-            background-color: #0c0c11;
-            color: #ffffff;
-            border-radius: 10px;
-            border: 1px solid #1f1f2e;
-            outline: none;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            font-size: 14px;
-        }
-
-        textarea {
-            resize: vertical;
-            height: 80px;
-        }
-
-        input:focus, textarea:focus {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-        }
-
-        /* Área Personalizada para Upload de Foto de Perfil */
-        .file-drop-area {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            border: 2px dashed #1f1f2e;
-            border-radius: 12px;
-            background-color: #0c0c11;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
-        }
-
-        .file-drop-area:hover {
-            border-color: #4f46e5;
-            background-color: rgba(79, 70, 229, 0.05);
-        }
-
-        .file-drop-area i {
-            font-size: 24px;
-            color: #4f46e5;
-            margin-bottom: 6px;
-        }
-
-        .file-drop-area span {
-            font-size: 12px;
-            color: #8a8a9e;
-        }
-
-        .file-drop-area input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        .btn-cadastro {
-            width: 100%;
-            margin-top: 8px;
-            padding: 12px;
-            background: linear-gradient(135deg, #4f46e5, #3b82f6);
-            color: #ffffff;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 15px;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-
-        .btn-cadastro:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-
-        .link-login {
-            display: block;
-            text-align: center;
-            margin-top: 16px;
-            color: #8a8a9e;
-            text-decoration: none;
-            font-size: 13px;
-        }
-
-        .link-login strong {
-            color: #4f46e5;
-        }
-
-        .erro {
-            color: #f87171;
-            text-align: center;
-            font-size: 13px;
-            background: rgba(248, 113, 113, 0.1);
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(248, 113, 113, 0.2);
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 480px) {
-            .form-row {
-                flex-direction: column;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/cada.css">
 </head>
 
 <body>
@@ -304,45 +134,54 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <form action="" method="POST" enctype="multipart/form-data" class="form-grid">
             
             <div class="form-group">
-                <label for="userNome">Nome Completo:*</label>
-                <input type="text" id="userNome" name="userNome" maxlength="75" required placeholder="Ex: João Silva">
+                <label for="userNome"> Nickname </label>
+                <input type="text" id="userNome" name="userNome" maxlength="75" required placeholder="Ex: Topazzz">
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="userNick">Nickname:*</label>
-                    <input type="text" id="userNick" name="userNick" maxlength="50" required placeholder="@joao">
+                    <label for="userNick"> Nome Completo </label>
+                    <input type="text" id="userNick" name="userNick" maxlength="50" required placeholder="Ex: Pedro Silveira Santos">
                 </div>
 
                 <div class="form-group">
-                    <label for="userEmail">E-mail:*</label>
-                    <input type="email" id="userEmail" name="userEmail" maxlength="75" required placeholder="seu@email.com">
+                    <label for="userEmail">E-mail</label>
+                    <input type="email" id="userEmail" name="userEmail" maxlength="75" required placeholder="seunome@email.com">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="userSenha">Senha:*</label>
+                    <label for="userSenha">Senha</label>
                     <input type="password" id="userSenha" name="userSenha" maxlength="20" required placeholder="Sua senha">
                 </div>
 
                 <div class="form-group">
-                    <label for="userSenhaConfirm">Confirmar Senha:*</label>
+                    <label for="userSenhaConfirm">Confirmar Senha</label>
                     <input type="password" id="userSenhaConfirm" name="userSenhaConfirm" maxlength="20" required placeholder="Repita a senha">
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Foto de Perfil:</label>
+                <label>Foto de Perfil</label>
                 <div class="file-drop-area">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span id="file-label">Escolha ou arraste sua foto</span>
-                    <input type="file" id="userFoto" name="userFoto" accept="image/*" onchange="updateFileName(this)">
+                    <span id="foto-label">Escolha ou arraste sua foto</span>
+                    <input type="file" id="userFoto" name="userFoto" accept="image/*" onchange="updateFileName(this, 'foto-label')">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="userDescricao">Bio / Descrição:</label>
+                <label> Banner Do Perfil </label>
+                <div class="file-drop-area">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span id="banner-label">Escolha ou arraste seu banner</span>
+                    <input type="file" id="userBanner" name="userBanner" accept="image/*" onchange="updateFileName(this, 'banner-label')">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="userDescricao">Bio / Descrição</label>
                 <textarea id="userDescricao" name="userDescricao" maxlength="200" placeholder="Conte um pouco sobre você..."></textarea>
             </div>
 
@@ -355,12 +194,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 
     <script>
-        function updateFileName(input) {
-            const label = document.getElementById('file-label');
+        function updateFileName(input, labelId) {
+            const label = document.getElementById(labelId);
+            const textoPadrao = label.dataset.default || label.textContent;
+            label.dataset.default = textoPadrao;
+
             if (input.files && input.files[0]) {
                 label.textContent = input.files[0].name;
             } else {
-                label.textContent = 'Escolha ou arraste sua foto';
+                label.textContent = textoPadrao;
             }
         }
     </script>
