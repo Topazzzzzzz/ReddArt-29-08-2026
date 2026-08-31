@@ -1,6 +1,8 @@
 /* ==========================================================================
-   FUNÇÃO AUXILIAR DE NORMALIZAÇÃO DE ID
+   VARIÁVEIS GLOBAIS E FUNÇÃO AUXILIAR DE NORMALIZAÇÃO DE ID
    ========================================================================== */
+let idPostAtualModal = null;
+
 function normalizarId(id) {
     if (!id) return '';
     let idStr = String(id).trim();
@@ -8,7 +10,7 @@ function normalizarId(id) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Validação de Usuários Proibidos (Logicfox e Spinelli) no Cadastro
+    // Validação de Usuários Proibidos no Cadastro
     const formCadastro = document.querySelector("form");
     const inputNick = document.getElementById("userNick");
 
@@ -27,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (bloqueado) {
                 alert("Acesso negado: Este nome de usuário não é permitido.");
-                e.preventDefault(); // Impede o envio do formulário
+                e.preventDefault();
             }
         });
     }
@@ -42,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 2. Dados e Cards (Opcional caso utilize dados estáticos)
+    // 2. Dados e Cards (Estáticos/Auxiliares)
     const data = [
         {
             title: "Fim de tarde",
@@ -101,18 +103,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 2. Barra de categorias (carrossel: desliza sozinho + setas laterais)
+    // 3. Barra de categorias (Carrossel)
     const catBar = document.getElementById('categoriasBar');
     const arrowLeft = document.getElementById('catArrowLeft');
     const arrowRight = document.getElementById('catArrowRight');
 
     if (catBar && arrowLeft && arrowRight) {
-        const VELOCIDADE_MARQUEE = 0.55; // px por frame (~33px/s)
+        const VELOCIDADE_MARQUEE = 0.55;
         const prefereMenosMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const wrapper = catBar.closest('.categorias-wrapper');
 
-        let marqueePausado = false;      // Pausa TEMPORÁRIA (só enquanto o mouse está em cima)
-        let modoManual = prefereMenosMovimento; // Desliga o movimento EM DEFINITIVO
+        let marqueePausado = false;
+        let modoManual = prefereMenosMovimento;
         let ultimoTempo = null;
 
         try {
@@ -175,7 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
         function rolar(direcao) {
             const limite = limiteMaximo();
             if (limite === 0) return;
-
             rolarPara(catBar.scrollLeft + direcao * passoRolagem());
         }
 
@@ -233,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }, true);
     }
 
-    // 3. Tema Claro / Escuro (com persistência)
+    // 4. Tema Claro / Escuro
     const chk = document.getElementById('chk');
     if (chk) {
         chk.checked = localStorage.getItem('tema') === 'claro';
@@ -244,7 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 4. Pop-up de Configurações
+    // 5. Pop-up de Configurações
     const configBtn = document.getElementById("logout_btn");
     const popup = document.getElementById("config_popup");
     const overlay = document.getElementById("overlay");
@@ -265,12 +266,14 @@ document.addEventListener("DOMContentLoaded", () => {
         overlay.addEventListener("click", fecharConfig);
     }
 
-    // 5. Pop-up de Visualização (Imagem do Banco + Comentários)
+    // 6. Pop-up de Visualização (Modal)
     const previewModal = document.getElementById("previewModal");
     const previewImage = document.getElementById("previewImage");
     const closePreview = document.querySelector(".close-preview");
 
     window.abrirModal = function (urlImagem, nomeAutor, idPub, titulo, descricao, curtidas) {
+        idPostAtualModal = idPub; // Atualiza a variável global com o ID atual
+
         if (previewModal && previewImage) {
             previewImage.src = urlImagem;
             previewImage.dataset.id = idPub || urlImagem;
@@ -295,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 curtidasModal.innerText = curtidas ?? 0;
             }
 
-            // Reseta os comentários ao abrir outra imagem
+            // Reseta comentários ao abrir
             const lista = document.getElementById("listaComentarios");
             if (lista) {
                 lista.innerHTML = "<p class='sem-comentario'>Nenhum comentário ainda.</p>";
@@ -306,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 contador.innerText = "0";
             }
 
-            // Sincroniza o ícone de salvar do modal se já estiver salvo
+            // Sincroniza ícone de favoritos no modal
             const favoritos = obterFavoritos();
             const idAtual = normalizarId(previewImage.dataset.id);
             const estaSalvo = favoritos.some(item =>
@@ -340,7 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // 6. Marcar Bookmarks dos Favoritos ao Carregar a Página
+    // 7. Marcar Bookmarks dos Favoritos ao Carregar
     const favoritos = obterFavoritos();
     const idsFavoritados = favoritos.flatMap(item => [normalizarId(item.id), normalizarId(item.imagem)]);
 
@@ -366,7 +369,6 @@ document.addEventListener("DOMContentLoaded", () => {
    FUNÇÕES GLOBAIS (AJAX / EVENTOS / FAVORITOS)
    ========================================================================== */
 
-// Função global para enviar comentários no modal
 function enviarComentario() {
     const input = document.getElementById("inputComentario");
     const lista = document.getElementById("listaComentarios");
@@ -395,8 +397,10 @@ function enviarComentario() {
     }
 }
 
+// Curtir via AJAX com sincronização em tempo real (Feed + Modal)
 function curtir(event, idPublicacao) {
-    event.stopPropagation();
+    if (event) event.stopPropagation();
+    if (!idPublicacao) return;
 
     const dados = new FormData();
     dados.append("idPublicacao", idPublicacao);
@@ -405,20 +409,46 @@ function curtir(event, idPublicacao) {
         method: "POST",
         body: dados
     })
-        .then(response => response.text())
-        .then(resultado => {
-            if (resultado !== "erro") {
-                const element = document.getElementById("curtidas-" + idPublicacao);
-                if (element) element.textContent = resultado;
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            // 1. Atualiza o contador no card do Feed
+            const elementoFeed = document.getElementById("curtidas-" + idPublicacao);
+            if (elementoFeed) {
+                elementoFeed.textContent = data.totalCurtidas;
             }
-        })
-        .catch(error => {
-            console.error(error);
-            alert("ERRO: " + error);
-        });
+
+            // 2. Atualiza o contador no Modal (caso o post aberto seja esse)
+            if (String(idPostAtualModal) === String(idPublicacao)) {
+                const elementoModal = document.getElementById("modalCurtidas");
+                if (elementoModal) {
+                    elementoModal.textContent = data.totalCurtidas;
+                }
+            }
+
+            // 3. (Opcional) Alterna o estilo visual do ícone de coração do post (se existir)
+            const card = elementoFeed ? elementoFeed.closest('.card, .media-card') : null;
+            if (card) {
+                const coracaoIcon = card.querySelector('.fa-heart');
+                if (coracaoIcon) {
+                    if (data.curtiu) {
+                        coracaoIcon.classList.remove('fa-regular');
+                        coracaoIcon.classList.add('fa-solid', 'curtido');
+                    } else {
+                        coracaoIcon.classList.remove('fa-solid', 'curtido');
+                        coracaoIcon.classList.add('fa-regular');
+                    }
+                }
+            }
+        } else {
+            alert(data.mensagem || "Erro ao processar a curtida.");
+        }
+    })
+    .catch(error => {
+        console.error("Erro na requisição AJAX:", error);
+    });
 }
 
-// Salvar/Favoritar diretamente pelo Botão do Modal
 function alternarIconeSalvar() {
     const btnSalvar = document.getElementById('btnSalvarModal');
     if (!btnSalvar) return;
@@ -429,7 +459,6 @@ function alternarIconeSalvar() {
     const curtidasModal = document.getElementById('modalCurtidas');
 
     if (!previewImage || !previewImage.src) {
-        console.error("Nenhuma imagem ativa no modal para salvar.");
         return;
     }
 
@@ -474,18 +503,16 @@ function alternarFavorito(cardData) {
 
     if (index > -1) {
         favoritos.splice(index, 1);
-        console.log("Removido dos salvos:", idNormalizado);
     } else {
         cardData.id = idNormalizado;
         cardData.imagem = normalizarId(cardData.imagem);
         favoritos.push(cardData);
-        console.log("Salvo com sucesso:", cardData);
     }
 
     localStorage.setItem('meusFavoritos', JSON.stringify(favoritos));
 }
 
-// Escutador global para cliques em cards no feed
+// Escutador global para cliques nos ícones de favorito do feed
 document.addEventListener('click', function (e) {
     const bookmark = e.target.closest('.bookmark-icon, .fa-bookmark');
 
@@ -521,7 +548,6 @@ document.addEventListener('click', function (e) {
     }
 });
 
-// Função para remoção chamada na página de favoritos
 function removerSalvo(id, iconeElemento) {
     let favoritos = obterFavoritos();
     const idParaRemover = normalizarId(id);
