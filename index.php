@@ -21,7 +21,7 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
         <!-- BANNER DE DESTAQUE -->
         <div class="banner-container">
             <div class="banner-card">
-                <img src="<?php echo htmlspecialchars($bannerAtual); ?>" alt="Banner Destaque">
+                <img src="<?php echo htmlspecialchars($bannerAtual ?? 'img/placeholder.jpg'); ?>" alt="Banner Destaque">
                 <?php if (!empty($usuario['userDescricao'])): ?>
                     <div class="banner-info">
                         <h2><?php echo htmlspecialchars($usuario['userDescricao']); ?></h2>
@@ -87,8 +87,6 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
             <button type="button" class="cat-arrow cat-arrow-right" id="catArrowRight" aria-label="Rolar categorias para a direita">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
-
- 
         </div>
 
         <div class="section-container">
@@ -159,7 +157,8 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                         $legenda = htmlspecialchars($row['pubLegenda'] ?? 'Arte');
                         $tituloJs = htmlspecialchars(addslashes($row['pubLegenda'] ?? 'Arte'), ENT_QUOTES);
                         $autorJs = htmlspecialchars(addslashes($row['autorNome'] ?? 'Usuário'), ENT_QUOTES);
-                        $curtidasPub = intval($row['pubCurtida'] ?? 0);
+                        // Ajustado para pubCurtidas (com 's')
+                        $curtidasPub = intval($row['pubCurtidas'] ?? 0);
                         $dataPub = !empty($row['pubHora']) ? date('d/m/Y H:i', strtotime($row['pubHora'])) : '';
                 ?>
                     <div class="media-card" onclick="abrirModal('<?php echo $link; ?>', '<?php echo $autorJs; ?>', '<?php echo $row['idPublicacao']; ?>', '<?php echo $tituloJs; ?>', 'Publicado por <?php echo $autorJs; ?> em <?php echo $dataPub; ?>', <?php echo $curtidasPub; ?>)">
@@ -168,7 +167,7 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                             <span class="curtida" onclick="curtir(event, <?php echo $row['idPublicacao']; ?>)">
                                 <i class="fa-regular fa-heart"></i>
                                 <span id="curtidas-<?php echo $row['idPublicacao']; ?>">
-                                    <?php echo $row['pubCurtida'] ?? 0; ?>
+                                    <?php echo $curtidasPub; ?>
                                 </span>
                             </span>
                             <span><i class="fa-regular fa-comment"></i> 0</span>
@@ -213,13 +212,19 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
                             $legendaGaleria = htmlspecialchars($row['pubLegenda']);
                             $tituloGaleriaJs = htmlspecialchars(addslashes($row['pubLegenda']), ENT_QUOTES);
                             $autorGaleriaJs = htmlspecialchars(addslashes($row['autorNome'] ?? 'Usuário'), ENT_QUOTES);
-                            $curtidasGaleria = intval($row['pubCurtida'] ?? 0);
+                            // Ajustado para pubCurtidas (com 's')
+                            $curtidasGaleria = intval($row['pubCurtidas'] ?? 0);
                             $dataGaleria = !empty($row['pubHora']) ? date('d/m/Y H:i', strtotime($row['pubHora'])) : '';
                     ?>
                         <div class="media-card" onclick="abrirModal('<?php echo $linkGaleria; ?>', '<?php echo $autorGaleriaJs; ?>', '<?php echo $row['idPublicacao']; ?>', '<?php echo $tituloGaleriaJs; ?>', 'Publicado por <?php echo $autorGaleriaJs; ?> em <?php echo $dataGaleria; ?>', <?php echo $curtidasGaleria; ?>)">
                             <img src="<?php echo $linkGaleria; ?>" alt="<?php echo $legendaGaleria; ?>">
                             <div class="card-footer-info">
-                                <span><i class="fa-regular fa-heart"></i> 0</span>
+                                <span class="curtida" onclick="curtir(event, <?php echo $row['idPublicacao']; ?>)">
+                                    <i class="fa-regular fa-heart"></i>
+                                    <span id="curtidas-<?php echo $row['idPublicacao']; ?>">
+                                        <?php echo $curtidasGaleria; ?>
+                                    </span>
+                                </span>
                                 <span><i class="fa-regular fa-comment"></i> 0</span>
                                 <i class="fa-regular fa-bookmark bookmark-icon"></i>
                             </div>
@@ -248,7 +253,7 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
 
                 <!-- ESTRUTURA DOS 3 RETÂNGULOS UNIFICADOS -->
                 <div class="modal-stats">
-                    <div class="stat-btn">
+                    <div class="stat-btn" id="btnCurtirModal" onclick="curtir(event, idPostAtualModal)">
                         <i class="fa-regular fa-heart"></i>
                         <span id="modalCurtidas">0</span>
                     </div>
