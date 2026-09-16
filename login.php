@@ -1,48 +1,78 @@
 <?php
-
+session_start();
 include "setup/conexao.php";
-
 $erro = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    // Reseta sessões anteriores
-    session_start();
-    session_unset();
-    session_destroy();
-    session_start();
+
+    $ipOrigem = $_SERVER['REMOTE_ADDR'];
+
+    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+        $ipOrigem = $_SERVER['HTTP_CLIENT_IP'];
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ipOrigem = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    }
+
+    $navegador = substr($_SERVER['HTTP_USER_AGENT'] ?? 'Desconhecido', 0, 255);
 
     $email = trim($_POST['userEmail'] ?? '');
     $senha = $_POST['userSenha'] ?? '';
 
     if (!empty($email) && !empty($senha)) {
-        // Uso de Prepared Statements para evitar SQL Injection
-        $stmt = $conn->prepare("SELECT idUsuario, userNome, userSenha FROM tblUsuario WHERE userEmail = ? LIMIT 1");
+
+        $stmt = $conn->prepare("SELECT idUsuario, userNome, userSenha, idCargo FROM tblUsuario WHERE userEmail = ? LIMIT 1");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $resultado = $stmt->get_result();
 
         if ($resultado && $resultado->num_rows > 0) {
+
             $usuario = $resultado->fetch_assoc();
 
-            // password_verify para comparar o texto com o hash do BD (já alterado para VARCHAR 255)
             if (password_verify($senha, $usuario['userSenha'])) {
+
+                $logStmt = $conn->prepare("INSERT INTO tblLogs (idUsuario, logEmail, logStatus, logIpOrigem, logNavegador, logdataHora) VALUES (?, ?, 'Sucesso', ?, ?, NOW())");
+                $logStmt->bind_param("isss", $usuario['idUsuario'], $email, $ipOrigem, $navegador);
+                $logStmt->execute();
+                $logStmt->close();
+
+                $_SESSION['usuario_id'] = $usuario['idUsuario'];
                 $_SESSION['idUsuario'] = $usuario['idUsuario'];
                 $_SESSION['userNome'] = $usuario['userNome'];
+                $_SESSION['usuario_cargo'] = $usuario['idCargo'];
 
                 header("Location: index.php");
                 exit;
             } else {
+
                 $erro = "Senha incorreta!";
+
+                // Grava o Log de Senha Incorreta (incluindo o Navegador)
+                $logStmt = $conn->prepare("INSERT INTO tblLogs (idUsuario, logEmail, logStatus, logIpOrigem, logNavegador, logdataHora) VALUES (?, ?, 'Falha', ?, ?, NOW())");
+                $logStmt->bind_param("isss", $usuario['idUsuario'], $email, $ipOrigem, $navegador);
+                $logStmt->execute();
+                $logStmt->close();
             }
         } else {
+
             $erro = "E-mail não encontrado!";
+
+            $idNulo = null;
+
+            $logStmt = $conn->prepare("INSERT INTO tblLogs (idUsuario, logEmail, logStatus, logIpOrigem, logNavegador, logdataHora) VALUES (?, ?, 'Falha', ?, ?, NOW())");
+            $logStmt->bind_param("isss", $idNulo, $email, $ipOrigem, $navegador);
+            $logStmt->execute();
+            $logStmt->close();
         }
+
         $stmt->close();
     } else {
+
         $erro = "Preencha todos os campos!";
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -92,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </div>
                 <button type="submit" class="btn-primary">Entrar</button>
                 <?php if ($erro): ?>
-                    <p style="color:#ff5c5c; font-size:0.85rem;"><?php echo htmlspecialchars($erro); ?></p>
+                    <p style="color:#ff5c5c; font-size:0.85rem; margin-top:10px;"><?php echo htmlspecialchars($erro); ?></p>
                 <?php endif; ?>
                 <p class="signup-text">Não tem uma conta? <a href="cada.php">Faça Cadastro</a></p>
             </form>
