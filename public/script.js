@@ -1,5 +1,5 @@
 /* ==========================================================================
-   VARIÁVEIS GLOBAIS E FUNÇÃO AUXILIAR DE NORMALIZAÇÃO DE ID
+   VARIÁVEIS GLOBAIS E FUNÇÕES AUXILIARES
    ========================================================================== */
 let idPostAtualModal = null;
 
@@ -10,30 +10,6 @@ function normalizarId(id) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Validação de Usuários Proibidos no Cadastro
-    const formCadastro = document.querySelector("form");
-    const inputNick = document.getElementById("userNick");
-
-    if (formCadastro && inputNick) {
-        formCadastro.addEventListener("submit", (e) => {
-            const valorDigitado = inputNick.value.trim().toLowerCase();
-            const termosProibidos = ["logikfox", "spinelli"];
-
-            let bloqueado = false;
-            for (let i = 0; i < termosProibidos.length; i++) {
-                if (valorDigitado.includes(termosProibidos[i])) {
-                    bloqueado = true;
-                    break;
-                }
-            }
-
-            if (bloqueado) {
-                alert("Acesso negado: Este nome de usuário não é permitido.");
-                e.preventDefault();
-            }
-        });
-    }
-
     // 1. Sidebar
     const openBtn = document.getElementById('open_btn');
     const sidebar = document.getElementById('sidebar');
@@ -234,14 +210,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }, true);
     }
 
-    // 4. Tema Claro / Escuro
+    // 4. Tema Claro / Escuro (CORRIGIDO)
     const chk = document.getElementById('chk');
     if (chk) {
-        chk.checked = localStorage.getItem('tema') === 'claro';
+        const temaSalvo = localStorage.getItem('tema');
+        if (temaSalvo === 'escuro') {
+            document.body.classList.add('dark');
+            chk.checked = true;
+        } else {
+            document.body.classList.remove('dark');
+            chk.checked = false;
+        }
 
         chk.addEventListener('change', () => {
-            const temaClaro = document.body.classList.toggle('dark');
-            localStorage.setItem('tema', temaClaro ? 'claro' : 'escuro');
+            const ehEscuro = document.body.classList.toggle('dark');
+            localStorage.setItem('tema', ehEscuro ? 'escuro' : 'claro');
         });
     }
 
@@ -272,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const closePreview = document.querySelector(".close-preview");
 
     window.abrirModal = function (urlImagem, nomeAutor, idPub, titulo, descricao, curtidas) {
-        idPostAtualModal = idPub; // Atualiza a variável global com o ID atual
+        idPostAtualModal = idPub;
 
         if (previewModal && previewImage) {
             previewImage.src = urlImagem;
@@ -290,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const nomeModal = document.getElementById("modalNomeUsuario");
             if (nomeModal) {
-                nomeModal.innerText = nomeAutor;
+                nomeModal.innerText = nomeAutor || "@usuario";
             }
 
             const curtidasModal = document.getElementById("modalCurtidas");
@@ -298,7 +281,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 curtidasModal.innerText = curtidas ?? 0;
             }
 
-            // Reseta comentários ao abrir
             const lista = document.getElementById("listaComentarios");
             if (lista) {
                 lista.innerHTML = "<p class='sem-comentario'>Nenhum comentário ainda.</p>";
@@ -309,14 +291,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 contador.innerText = "0";
             }
 
-            // Sincroniza ícone de favoritos no modal
             const favoritos = obterFavoritos();
             const idAtual = normalizarId(previewImage.dataset.id);
             const estaSalvo = favoritos.some(item =>
                 normalizarId(item.id) === idAtual || normalizarId(item.imagem) === idAtual
             );
 
-            const btnIcon = document.querySelector('#btnSalvarModal i');
+            const btnIcon = document.querySelector('#btnSalvarModal i') || document.getElementById('btnSalvarModal');
             if (btnIcon) {
                 if (estaSalvo) {
                     btnIcon.classList.remove('fa-regular');
@@ -392,12 +373,11 @@ function enviarComentario() {
 
         const contador = document.getElementById("modalComentarios");
         if (contador) {
-            contador.innerText = parseInt(contador.innerText) + 1;
+            contador.innerText = parseInt(contador.innerText || '0') + 1;
         }
     }
 }
 
-// Curtir via AJAX com sincronização em tempo real (Feed + Modal)
 function curtir(event, idPublicacao) {
     if (event) event.stopPropagation();
     if (!idPublicacao) return;
@@ -409,44 +389,41 @@ function curtir(event, idPublicacao) {
         method: "POST",
         body: dados
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.sucesso) {
-            // 1. Atualiza o contador no card do Feed
-            const elementoFeed = document.getElementById("curtidas-" + idPublicacao);
-            if (elementoFeed) {
-                elementoFeed.textContent = data.totalCurtidas;
-            }
-
-            // 2. Atualiza o contador no Modal (caso o post aberto seja esse)
-            if (String(idPostAtualModal) === String(idPublicacao)) {
-                const elementoModal = document.getElementById("modalCurtidas");
-                if (elementoModal) {
-                    elementoModal.textContent = data.totalCurtidas;
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                const elementoFeed = document.getElementById("curtidas-" + idPublicacao);
+                if (elementoFeed) {
+                    elementoFeed.textContent = data.totalCurtidas;
                 }
-            }
 
-            // 3. (Opcional) Alterna o estilo visual do ícone de coração do post (se existir)
-            const card = elementoFeed ? elementoFeed.closest('.card, .media-card') : null;
-            if (card) {
-                const coracaoIcon = card.querySelector('.fa-heart');
-                if (coracaoIcon) {
-                    if (data.curtiu) {
-                        coracaoIcon.classList.remove('fa-regular');
-                        coracaoIcon.classList.add('fa-solid', 'curtido');
-                    } else {
-                        coracaoIcon.classList.remove('fa-solid', 'curtido');
-                        coracaoIcon.classList.add('fa-regular');
+                if (String(idPostAtualModal) === String(idPublicacao)) {
+                    const elementoModal = document.getElementById("modalCurtidas");
+                    if (elementoModal) {
+                        elementoModal.textContent = data.totalCurtidas;
                     }
                 }
+
+                const card = elementoFeed ? elementoFeed.closest('.card, .media-card') : null;
+                if (card) {
+                    const coracaoIcon = card.querySelector('.fa-heart');
+                    if (coracaoIcon) {
+                        if (data.curtiu) {
+                            coracaoIcon.classList.remove('fa-regular');
+                            coracaoIcon.classList.add('fa-solid', 'curtido');
+                        } else {
+                            coracaoIcon.classList.remove('fa-solid', 'curtido');
+                            coracaoIcon.classList.add('fa-regular');
+                        }
+                    }
+                }
+            } else {
+                alert(data.mensagem || "Erro ao processar a curtida.");
             }
-        } else {
-            alert(data.mensagem || "Erro ao processar a curtida.");
-        }
-    })
-    .catch(error => {
-        console.error("Erro na requisição AJAX:", error);
-    });
+        })
+        .catch(error => {
+            console.error("Erro na requisição AJAX:", error);
+        });
 }
 
 function alternarIconeSalvar() {
@@ -458,9 +435,7 @@ function alternarIconeSalvar() {
     const tituloModal = document.getElementById('modalTitulo');
     const curtidasModal = document.getElementById('modalCurtidas');
 
-    if (!previewImage || !previewImage.src) {
-        return;
-    }
+    if (!previewImage || !previewImage.src) return;
 
     const imagemUrl = previewImage.getAttribute('src');
     const cardId = previewImage.dataset.id || imagemUrl;
@@ -488,7 +463,11 @@ function alternarIconeSalvar() {
    ========================================================================== */
 
 function obterFavoritos() {
-    return JSON.parse(localStorage.getItem('meusFavoritos')) || [];
+    try {
+        return JSON.parse(localStorage.getItem('meusFavoritos')) || [];
+    } catch (e) {
+        return [];
+    }
 }
 
 function alternarFavorito(cardData) {
@@ -512,7 +491,6 @@ function alternarFavorito(cardData) {
     localStorage.setItem('meusFavoritos', JSON.stringify(favoritos));
 }
 
-// Escutador global para cliques nos ícones de favorito do feed
 document.addEventListener('click', function (e) {
     const bookmark = e.target.closest('.bookmark-icon, .fa-bookmark');
 
@@ -532,7 +510,7 @@ document.addEventListener('click', function (e) {
 
     const cardData = {
         id: normalizarId(cardId),
-        titulo: card.dataset.titulo || imgElement?.alt || 'Sem título',
+        titulo: card.dataset.titulo || (imgElement ? imgElement.alt : '') || 'Sem título',
         imagem: imagemUrl,
         curtidas: card.querySelector('.curtida span, [id^="curtidas-"]')?.innerText.trim() || '0'
     };
@@ -570,5 +548,63 @@ function removerSalvo(id, iconeElemento) {
         if (container) {
             container.innerHTML = '<p style="color: #888; padding: 15px;">Você ainda não salvou nenhuma mídia.</p>';
         }
+    }
+}
+
+/* ==========================================================================
+   CONEXÃO FRONTEND COM A API DE VERIFICAÇÃO DE E-MAIL (NODE.JS)
+   ========================================================================== */
+
+const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:3000'
+    : `${window.location.protocol}//${window.location.hostname}`;
+
+async function solicitarCodigoConfirmacao(idUsuario, email) {
+    try {
+        const response = await fetch(`${API_URL}/api/enviar-codigo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idUsuario, email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            console.log('Resposta do servidor:', data);
+            return true;
+        } else {
+            alert('Erro ao enviar código: ' + (data.mensagem || data.erro));
+            console.error('Erro:', data);
+            return false;
+        }
+    } catch (error) {
+        alert('Erro de conexão com o servidor de e-mail.');
+        console.error('Erro na requisição:', error);
+        return false;
+    }
+}
+
+async function confirmarCodigoEmail(idUsuario, codigo) {
+    try {
+        const response = await fetch(`${API_URL}/api/validar-codigo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idUsuario, codigo })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            console.log('Sucesso:', data);
+            return true;
+        } else {
+            alert('Falha na verificação: ' + (data.mensagem || data.erro));
+            console.error('Erro na validação:', data);
+            return false;
+        }
+    } catch (error) {
+        alert('Erro de conexão com o servidor.');
+        console.error('Erro na requisição:', error);
+        return false;
     }
 }
