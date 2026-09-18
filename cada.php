@@ -3,15 +3,17 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
 include "setup/conexao.php";
 
-$erro = "";
-$sucesso = "";
-
+// ==========================================================================
+// PROCESSAMENTO AJAX DO CADASTRO (Retorna JSON)
+// ==========================================================================
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    header('Content-Type: application/json');
+
     $nome = trim($_POST['userNome'] ?? '');
     $nick = trim($_POST['userNick'] ?? '');
     $email = trim($_POST['userEmail'] ?? '');
@@ -19,6 +21,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $senhaConfirm = $_POST['userSenhaConfirm'] ?? '';
     $descricao = trim($_POST['userDescricao'] ?? '');
     $idCargoPadrao = 1; 
+
+    $erro = "";
 
     // Bloqueio de termos restritos no Nick
     $nickMinusculo = strtolower($nick);
@@ -92,13 +96,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 $conn->close();
 
-                header("Location: login.php");
+                echo json_encode([
+                    'sucesso' => true,
+                    'idUsuario' => $novoIdUsuario,
+                    'email' => $email,
+                    'mensagem' => 'Cadastro realizado! Verifique seu e-mail.'
+                ]);
                 exit();
             } else {
                 if ($conn->errno === 1062) {
                     $erro = "E-mail ou Nick já cadastrados!";
                 } else {
-                    $erro = "Erro ao cadastrar: " . htmlspecialchars($stmt->error);
+                    $erro = "Erro ao cadastrar no banco.";
                 }
                 $stmt->close();
             }
@@ -106,6 +115,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $erro = "Preencha todos os campos obrigatórios!";
         }
     }
+
+    echo json_encode(['sucesso' => false, 'mensagem' => $erro]);
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -127,11 +139,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <div class="cadastro-container">
 
-        <?php if (!empty($erro)): ?>
-            <div class="erro"><?php echo $erro; ?></div>
-        <?php endif; ?>
+        <div id="mensagem-erro" class="erro" style="display: none;"></div>
 
-        <form action="" method="POST" enctype="multipart/form-data" class="form-grid">
+        <!-- Formulário de Cadastro Principal -->
+        <form id="formCadastro" enctype="multipart/form-data" class="form-grid">
             
             <div class="form-group">
                 <label for="userNome"> Nickname </label>
@@ -185,13 +196,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <textarea id="userDescricao" name="userDescricao" maxlength="200" placeholder="Conte um pouco sobre você..."></textarea>
             </div>
 
-            <button type="submit" class="btn-cadastro">Criar Conta</button>
+            <button type="submit" id="btnSubmit" class="btn-cadastro">Criar Conta</button>
 
             <a href="login.php" class="link-login">
                 Já tem uma conta? <strong>Faça Login</strong>
             </a>
         </form>
+
+        <!-- Seção do Código de Confirmação (Inicia Oculta) -->
+        <div id="secaoVerificacao" style="display: none; text-align: center; margin-top: 20px;">
+            <h2>Digite o Código de Verificação</h2>
+            <p style="margin-bottom: 15px; color: #ccc;">Enviamos um código de 6 dígitos para o seu e-mail.</p>
+            
+            <div class="form-group">
+                <input type="text" id="inputCodigoConfirmacao" maxlength="6" placeholder="000000" style="text-align: center; font-size: 24px; letter-spacing: 5px;">
+            </div>
+
+            <button type="button" id="btnConfirmarCodigo" class="btn-cadastro" style="margin-top: 15px;">Validar E-mail</button>
+        </div>
+
     </div>
+
+    <!-- Script com a lógica do Node.js integrada -->
+    <script src="public/script.js"></script>
 
     <script>
         function updateFileName(input, labelId) {
@@ -205,6 +232,73 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 label.textContent = textoPadrao;
             }
         }
+
+        let idUsuarioCadastrado = null;
+
+        // Submissão do formulário via JavaScript (AJAX)
+        document.getElementById('formCadastro').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const erroDiv = document.getElementById('mensagem-erro');
+            const btnSubmit = document.getElementById('btnSubmit');
+            
+            erroDiv.style.display = 'none';
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Cadastrando...";
+
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch('cada.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.sucesso) {
+                    idUsuarioCadastrado = data.idUsuario;
+
+                    // Oculta formulário e exibe tela de código
+                    document.getElementById('formCadastro').style.display = 'none';
+                    document.getElementById('secaoVerificacao').style.display = 'block';
+
+                    // Envia e-mail de código via servidor Node.js (porta 3000)
+                    if (typeof solicitarCodigoConfirmacao === 'function') {
+                        await solicitarCodigoConfirmacao(idUsuarioCadastrado, data.email);
+                    }
+                } else {
+                    erroDiv.textContent = data.mensagem;
+                    erroDiv.style.display = 'block';
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = "Criar Conta";
+                }
+            } catch (error) {
+                console.error(error);
+                erroDiv.textContent = "Erro ao processar o cadastro.";
+                erroDiv.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = "Criar Conta";
+            }
+        });
+
+        // Clique no botão de confirmar código
+        document.getElementById('btnConfirmarCodigo').addEventListener('click', async function () {
+            const codigo = document.getElementById('inputCodigoConfirmacao').value.trim();
+
+            if (codigo.length !== 6) {
+                alert('Digite o código de 6 dígitos recebido.');
+                return;
+            }
+
+            if (typeof confirmarCodigoEmail === 'function') {
+                const verificado = await confirmarCodigoEmail(idUsuarioCadastrado, codigo);
+                if (verificado) {
+                    alert('E-mail verificado! Redirecionando para o login...');
+                    window.location.href = 'login.php';
+                }
+            }
+        });
     </script>
 </body>
 
