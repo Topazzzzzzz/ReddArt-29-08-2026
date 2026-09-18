@@ -8,8 +8,6 @@ $senha    = "7. Raijin...!_7. QRM — Est0# s0fr&nd0 !nt&rf&rênc!@?";
 $banco    = "hubsap45_bdreddart_2026"; 
 
 $conn = new mysqli($servidor, $usuario, $senha, $banco);
-date_default_timezone_set('America/Sao_Paulo');
-$conn->query("SET time_zone = '-03:00'");
 
 if ($conn->connect_error) {
     die("Falha na conexão: " . $conn->connect_error);
