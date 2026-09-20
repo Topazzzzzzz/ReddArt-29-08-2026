@@ -279,6 +279,6 @@ $generoFiltro = isset($_GET['genero']) ? intval($_GET['genero']) : null;
         </div>
     </div>
 
-    <script src="public/script.js?v=10"></script>
+    <script src="public/script.js?v=14"></script>
 </body>
 </html>
