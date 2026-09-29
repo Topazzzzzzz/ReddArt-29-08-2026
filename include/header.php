@@ -34,14 +34,15 @@ $bannerAtual = !empty($usuario['userBanner']) ? $usuario['userBanner'] : 'upload
 
     <!-- Corrigido CDN do FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/index.css?v=8">
+    <link rel="stylesheet" href="css/index.css?v=12">
 </head>
 
 <body>
 
     <!-- Aplica o tema salvo antes da página renderizar (evita piscar) -->
+    <!-- Mesma regra do public/script.js: classe 'dark' <=> tema 'escuro' -->
     <script>
-        if (localStorage.getItem('tema') === 'claro') {
+        if (localStorage.getItem('tema') === 'escuro') {
             document.body.classList.add('dark');
         }
     </script>

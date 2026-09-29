@@ -293,9 +293,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const favoritos = obterFavoritos();
             const idAtual = normalizarId(previewImage.dataset.id);
-            const estaSalvo = favoritos.some(item =>
+            const itemSalvo = favoritos.find(item =>
                 normalizarId(item.id) === idAtual || normalizarId(item.imagem) === idAtual
             );
+            const estaSalvo = !!itemSalvo;
 
             const btnIcon = document.querySelector('#btnSalvarModal i') || document.getElementById('btnSalvarModal');
             if (btnIcon) {
@@ -308,6 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
 
+            // Pasta atual do item (só para referência futura)
             previewModal.classList.add("show");
         }
     };
@@ -447,14 +449,18 @@ function alternarIconeSalvar() {
         curtidas: curtidasModal ? curtidasModal.innerText : '0'
     };
 
-    alternarFavorito(cardData);
+    const idN = normalizarId(cardData.id);
 
-    if (btnIcon.classList.contains('fa-solid')) {
-        btnIcon.classList.remove('fa-solid');
-        btnIcon.classList.add('fa-regular');
+    // Já salvo? Remove direto. Novo? Balão de pastas colado ao botão salvar.
+    if (itemJaFavoritado(idN)) {
+        alternarFavorito(cardData);
+        definirIconeBookmark(btnIcon, false);
     } else {
-        btnIcon.classList.remove('fa-regular');
-        btnIcon.classList.add('fa-solid');
+        abrirBalaoPastas(btnSalvar, cardData, (pasta) => {
+            if (!pasta) return;
+            alternarFavorito(Object.assign({}, cardData, { pasta: pasta }));
+            definirIconeBookmark(btnIcon, true);
+        });
     }
 }
 
@@ -491,6 +497,129 @@ function alternarFavorito(cardData) {
     localStorage.setItem('meusFavoritos', JSON.stringify(favoritos));
 }
 
+/* ==========================================================================
+   PASTAS DO USUÁRIO + PICKER AO FAVORITAR (página inicial)
+   ========================================================================== */
+
+function obterPastasUsuario() {
+    // Sem pastas padrão: só as que a pessoa criar
+    try {
+        const custom = JSON.parse(localStorage.getItem('minhasPastas')) || [];
+        return custom.filter(n => n && String(n).trim() !== '');
+    } catch (e) { return []; }
+}
+
+function definirIconeBookmark(el, salvo) {
+    if (!el) return;
+    if (salvo) {
+        el.classList.remove('fa-regular');
+        el.classList.add('fa-solid', 'active');
+    } else {
+        el.classList.remove('fa-solid', 'active');
+        el.classList.add('fa-regular');
+    }
+}
+
+function itemJaFavoritado(idNormalizado) {
+    const favoritos = obterFavoritos();
+    return favoritos.some(item =>
+        normalizarId(item.id) === idNormalizado || normalizarId(item.imagem) === idNormalizado
+    );
+}
+
+function escaparAttr(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* Balão de pastas ancorado ao botão favoritar (só abre ao clicar nele) */
+function fecharBalaoPastas() {
+    const b = document.getElementById('favBalloon');
+    if (b) b.remove();
+    document.removeEventListener('click', fecharBalaoFora, true);
+    document.removeEventListener('keydown', fecharBalaoEsc);
+    window.removeEventListener('resize', fecharBalaoPastas);
+}
+
+function fecharBalaoFora(e) {
+    const b = document.getElementById('favBalloon');
+    if (!b) return;
+    if (b.contains(e.target)) return;
+    if (b._anchor && b._anchor.contains(e.target)) return;
+    fecharBalaoPastas();
+}
+
+function fecharBalaoEsc(e) {
+    if (e.key === 'Escape') fecharBalaoPastas();
+}
+
+function abrirBalaoPastas(anchor, cardData, aoEscolher) {
+    fecharBalaoPastas();
+
+    const balao = document.createElement('div');
+    balao.id = 'favBalloon';
+    balao.className = 'fav-balloon';
+    balao._anchor = anchor;
+
+    let linhas = '';
+    obterPastasUsuario().forEach(nome => {
+        linhas += `<button type="button" class="fav-balloon-item" data-pasta="${escaparAttr(nome)}"><i class="fa-solid fa-folder"></i><span>${escaparAttr(nome)}</span></button>`;
+    });
+
+    balao.innerHTML = `
+        <p class="fav-balloon-title">Salvar em...</p>
+        ${linhas === '' ? '<p class="fav-balloon-empty">Você ainda não tem pastas.<br>Crie a primeira abaixo:</p>' : `<div class="fav-balloon-list">${linhas}</div>`}
+        <form class="fav-balloon-new">
+            <input type="text" placeholder="Nova pasta..." maxlength="50">
+            <button type="submit" title="Criar e salvar aqui"><i class="fa-solid fa-plus"></i></button>
+        </form>`;
+    document.body.appendChild(balao);
+
+    // Posiciona o balão colado ao botão (embaixo; se não couber, em cima)
+    const r = anchor.getBoundingClientRect();
+    const bw = 250;
+    const left = Math.min(Math.max(8, r.left + r.width / 2 - bw / 2), window.innerWidth - bw - 8);
+    balao.style.left = left + 'px';
+    const bh = balao.offsetHeight;
+    let top = r.bottom + 12;
+    let acima = false;
+    if (top + bh > window.innerHeight - 8) {
+        top = Math.max(8, r.top - bh - 12);
+        acima = true;
+    }
+    balao.style.top = top + 'px';
+    if (acima) balao.classList.add('acima');
+    const setaX = Math.min(Math.max(18, r.left + r.width / 2 - left), bw - 18);
+    balao.style.setProperty('--seta', setaX + 'px');
+
+    function concluir(nome) {
+        fecharBalaoPastas();
+        if (typeof aoEscolher === 'function') aoEscolher(nome);
+    }
+
+    balao.addEventListener('click', (e) => {
+        const btn = e.target.closest('.fav-balloon-item');
+        if (btn) concluir(btn.getAttribute('data-pasta'));
+    });
+
+    const form = balao.querySelector('.fav-balloon-new');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const nome = (form.querySelector('input').value || '').trim();
+        if (!nome) return;
+        try {
+            const arr = JSON.parse(localStorage.getItem('minhasPastas')) || [];
+            if (arr.indexOf(nome) === -1) arr.push(nome);
+            localStorage.setItem('minhasPastas', JSON.stringify(arr));
+        } catch (err) { /* ignora */ }
+        concluir(nome);
+    });
+
+    document.addEventListener('click', fecharBalaoFora, true);
+    document.addEventListener('keydown', fecharBalaoEsc);
+    window.addEventListener('resize', fecharBalaoPastas);
+}
+
 document.addEventListener('click', function (e) {
     const bookmark = e.target.closest('.bookmark-icon, .fa-bookmark');
 
@@ -515,14 +644,18 @@ document.addEventListener('click', function (e) {
         curtidas: card.querySelector('.curtida span, [id^="curtidas-"]')?.innerText.trim() || '0'
     };
 
-    alternarFavorito(cardData);
+    const idN = normalizarId(cardData.id);
 
-    if (bookmark.classList.contains('fa-solid')) {
-        bookmark.classList.remove('fa-solid', 'active');
-        bookmark.classList.add('fa-regular');
+    // Já favoritado? Remove direto. Novo? Balão de pastas colado ao botão.
+    if (itemJaFavoritado(idN)) {
+        alternarFavorito(cardData);
+        definirIconeBookmark(bookmark, false);
     } else {
-        bookmark.classList.remove('fa-regular');
-        bookmark.classList.add('fa-solid', 'active');
+        abrirBalaoPastas(bookmark, cardData, (pasta) => {
+            if (!pasta) return;
+            alternarFavorito(Object.assign({}, cardData, { pasta: pasta }));
+            definirIconeBookmark(bookmark, true);
+        });
     }
 });
 
