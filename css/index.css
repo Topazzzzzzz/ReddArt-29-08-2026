@@ -1263,3 +1263,169 @@ body.dark .cat-arrow:hover {
     color: #ffffff;
     border-color: #4f46e5;
 }
+
+/* ==========================================================================
+   BALÃO DE PASTAS — abre colado ao botão favoritar
+   ========================================================================== */
+.fav-balloon {
+    position: fixed;
+    z-index: 2200;
+    width: 250px;
+    background-color: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+}
+
+.fav-balloon::before {
+    content: "";
+    position: absolute;
+    top: -7px;
+    left: var(--seta, 50%);
+    transform: translateX(-50%) rotate(45deg);
+    width: 12px;
+    height: 12px;
+    background: #1e1e1e;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fav-balloon.acima::before {
+    top: auto;
+    bottom: -7px;
+    transform: translateX(-50%) rotate(225deg);
+}
+
+.fav-balloon-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.fav-balloon-empty {
+    font-size: 12.5px;
+    color: #8a8a9e;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.fav-balloon-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 210px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+.fav-balloon-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #d4d4d8;
+    padding: 8px 10px;
+    font-size: 13.5px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.fav-balloon-item:hover {
+    background: #3f3f46;
+    color: #fff;
+}
+
+.fav-balloon-item i {
+    color: #8a8a9e;
+    flex-shrink: 0;
+}
+
+.fav-balloon-item span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fav-balloon-new {
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 10px;
+}
+
+.fav-balloon-new input {
+    flex: 1;
+    min-width: 0;
+    background: #27272a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    outline: none;
+    font-size: 13px;
+}
+
+.fav-balloon-new input:focus {
+    border-color: #2563eb;
+}
+
+.fav-balloon-new button {
+    flex-shrink: 0;
+    width: 36px;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.fav-balloon-new button:hover {
+    filter: brightness(1.15);
+}
+
+/* Tema claro */
+body.dark .fav-balloon {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+}
+
+body.dark .fav-balloon::before {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.dark .fav-balloon-title {
+    color: #18181b;
+}
+
+body.dark .fav-balloon-empty {
+    color: #71717a;
+}
+
+body.dark .fav-balloon-item {
+    color: #3f3f46;
+}
+
+body.dark .fav-balloon-item:hover {
+    background: #f4f4f5;
+}
+
+body.dark .fav-balloon-item i {
+    color: #71717a;
+}
+
+body.dark .fav-balloon-new {
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.dark .fav-balloon-new input {
+    background: #f4f4f5;
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #18181b;
+}
